@@ -29,7 +29,7 @@ if [[ ! -z "$SSH_TTY" ]]; then
 fi
 
 IS_ROOT=''
-if [[ $UID -eq 1000 ]]; then
+if [[ $UID -eq 0 ]]; then
   IS_ROOT=';41'
 fi
 
