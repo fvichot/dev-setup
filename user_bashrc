@@ -1,0 +1,93 @@
+
+# if on a Mac
+if [[ $(uname -s ) == 'Darwin' ]]; then
+  if [[ ! -z $(which brew) ]]; then
+    source ~/.homebrew_credentials
+
+    if [ -f $(brew --prefix)/etc/bash_completion ]; then
+      . $(brew --prefix)/etc/bash_completion
+    fi
+  fi
+
+  alias l='ls -lFG'
+  alias ll='ls -lFGA'
+  alias subedit="open -a 'sublime text'"
+
+  export PYTHONPATH=$PYTHONPATH:/usr/local/lib/python2.7/site-packages
+# else if Linux/BSD
+else 
+  alias l='ls -lFA --color=auto'
+fi
+
+alias ee='echo Successssssssssssssss'
+alias gti='git'
+complete -r cd &>/dev/null
+complete -r sqlite3 &>/dev/null
+complete -r ninja &>/dev/null
+
+PS1_REMOTE='46'
+if [[ ! -z "$SSH_TTY" ]]; then
+  PS1_REMOTE='42'
+fi
+
+IS_ROOT=''
+if [[ $UID -eq 1000 ]]; then
+  IS_ROOT=';41'
+fi
+
+if [[ -z $(type -t __git_ps1) ]]; then
+  export PS1="\[\e[3;30;${PS1_REMOTE}m\]\w\[\e[0;32m\]\[\e[m\]\n\[\e[1;37${IS_ROOT}m\]\u\[\e[0m\]\[\e[1;37m\]@\h\[\e[0m\]\\$ "
+else
+  export PS1="\[\e[3;30;${PS1_REMOTE}m\]\w\[\e[0;32m\]\$(__git_ps1)\[\e[m\]\n\[\e[1;37${IS_ROOT}m\]\u\[\e[0m\]\[\e[1;37m\]@\h\[\e[0m\]\\$ "
+fi
+
+export HISTFILESIZE=10000
+export HISTCONTROL=ignoreboth
+shopt -s histappend
+shopt -s no_empty_cmd_completion
+
+export EDITOR=nano
+
+export PATH=~/dev/bin:/usr/local/bin:$PATH
+
+function nn {
+  ninja "$@" | perl -wln -M'Term::ANSIColor' -e '
+  m/note:/ and print "\e[1;32m", "$_", "\e[0m"
+  or
+  m/error:/i and print "\e[1;91m", "$_", "\e[0m"
+  or
+  m/warning:/i and print "\e[1;93m", "$_", "\e[0m"
+  or
+  m/: In /i and print "\e[1;36m", "$_", "\e[0m"
+  or
+  print; '
+  return ${PIPESTATUS[0]}
+}
+
+function mm {
+  make -j 8  "$@" | perl -wln -M'Term::ANSIColor' -e '
+  m/note:/ and print "\e[1;32m", "$_", "\e[0m"
+  or
+  m/error:/i and print "\e[1;91m", "$_", "\e[0m"
+  or
+  m/warning:/i and print "\e[1;93m", "$_", "\e[0m"
+  or
+  m/: In /i and print "\e[1;36m", "$_", "\e[0m"
+  or
+  print; '
+  return ${PIPESTATUS[0]}
+}
+
+function sshc {
+  USER_BASHRC=$(cat ~/.user_bashrc)
+  if [[ $(uname -s) == Linux ]]; then
+    USER_INPUTRC=$(cat ~/.inputrc | sed -r 's/^([^#]+)/bind "\1"/')
+  else
+    USER_INPUTRC=$(cat ~/.inputrc | sed -E 's/^([^#]+)/bind "\1"/')
+  fi
+  # if already set, we're already in a sshc session, just re-use LC_USER_RCFILE as it is
+  if [[ -z "$LC_USER_RCFILE" ]]; then
+    LC_USER_RCFILE=$(echo -e "if [[ -f ~/.bashrc ]];then . ~/.bashrc; fi\n${USER_BASHRC}\n${USER_INPUTRC}")
+  fi
+  LC_USER_RCFILE=${LC_USER_RCFILE} ssh -t "$@" -- 'bash --rcfile <(echo "${LC_USER_RCFILE}")'
+}
