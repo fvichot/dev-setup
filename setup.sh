@@ -5,6 +5,7 @@
 set -euf -o pipefail
 
 ln -sf $PWD/user_bashrc ~/.user_bashrc
+ln -sf $PWD/inputrc ~/.inputrc
 if [[ ! -f ~/.bashrc || -z $(grep user_bashrc ~/.bashrc) ]]; then
   echo -e "\nsource ~/.user_bashrc" >> ~/.bashrc
   echo "Added sourcing to bashrc"
