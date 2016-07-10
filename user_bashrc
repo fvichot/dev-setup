@@ -9,8 +9,7 @@ if [[ $(uname -s ) == 'Darwin' ]]; then
     fi
   fi
 
-  alias l='ls -lFG'
-  alias ll='ls -lFGA'
+  alias l='ls -lFGA'
   alias subedit="open -a 'sublime text'"
 
   export PYTHONPATH=$PYTHONPATH:/usr/local/lib/python2.7/site-packages
@@ -19,7 +18,6 @@ else
   alias l='ls -lFA --color=auto'
 fi
 
-alias ee='echo Successssssssssssssss'
 alias gti='git'
 complete -r cd &>/dev/null
 complete -r sqlite3 &>/dev/null
