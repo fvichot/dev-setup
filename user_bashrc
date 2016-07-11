@@ -23,20 +23,28 @@ complete -r cd &>/dev/null
 complete -r sqlite3 &>/dev/null
 complete -r ninja &>/dev/null
 
-PS1_REMOTE='46'
-if [[ ! -z "$SSH_TTY" ]]; then
+PS1_REMOTE='44'
+if [[ -n "$SSH_TTY" ]]; then
   PS1_REMOTE='42'
 fi
 
-IS_ROOT=''
-if [[ $UID -eq 0 ]]; then
-  IS_ROOT=';41'
-fi
+function __is_root {
+  if [[ $UID -eq 0 ]]; then
+    printf ';41'
+  fi
+  return 0
+}
 
-if [[ -z $(type -t __git_ps1) ]]; then
-  export PS1="\[\e[3;30;${PS1_REMOTE}m\]\w\[\e[0;32m\]\[\e[m\]\n\[\e[1;37${IS_ROOT}m\]\u\[\e[0m\]\[\e[1;37m\]@\h\[\e[0m\]\\$ "
+export GIT_PS1_SHOWDIRTYSTATE=0
+export GIT_PS1_SHOWSTASHSTATE=0
+export GIT_PS1_SHOWUPSTREAM=auto
+export GIT_PS1_SHOWUNTRACKEDFILES=1
+export GIT_PS1_DESCRIBE_STYLE=branch
+
+if [[ -n $(type -t __git_ps1) ]]; then
+  export PS1="\[\e[37;${PS1_REMOTE}m\]\w\[\e[m\]\$(__git_ps1)\n\[\e[36\$(__is_root);1m\]\u\[\e[m\]@\[\e[32m\]\h\[\e[m\]\\$ "
 else
-  export PS1="\[\e[3;30;${PS1_REMOTE}m\]\w\[\e[0;32m\]\$(__git_ps1)\[\e[m\]\n\[\e[1;37${IS_ROOT}m\]\u\[\e[0m\]\[\e[1;37m\]@\h\[\e[0m\]\\$ "
+  export PS1="\[\e[37;${PS1_REMOTE}m\]\w\[\e[m\]\n\[\e[36\$(__is_root);1m\]\u\[\e[m\]@\[\e[32m\]\h\[\e[m\]\\$ "
 fi
 
 export HISTFILESIZE=10000
@@ -46,7 +54,7 @@ shopt -s no_empty_cmd_completion
 
 export EDITOR=nano
 
-export PATH=~/dev/bin:/usr/local/bin:$PATH
+export PATH=~/dev/bin:/usr/local/bin:/usr/local/sbin/:$PATH
 
 function nn {
   ninja "$@" | perl -wln -M'Term::ANSIColor' -e '
