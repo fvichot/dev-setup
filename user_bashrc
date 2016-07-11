@@ -95,5 +95,9 @@ function sshc {
   if [[ -z "$LC_USER_RCFILE" ]]; then
     LC_USER_RCFILE=$(echo -e "if [[ -f ~/.bashrc ]];then . ~/.bashrc; fi\n${USER_BASHRC}\n${USER_INPUTRC}")
   fi
-  LC_USER_RCFILE=${LC_USER_RCFILE} ssh -t "$@" -- 'bash --rcfile <(echo "${LC_USER_RCFILE}")'
+  if [[ -n "$@" ]]; then
+    LC_USER_RCFILE=${LC_USER_RCFILE} /usr/bin/ssh -t "$@" -- 'bash --rcfile <(echo "${LC_USER_RCFILE}")'
+  else
+    /usr/bin/ssh "$@"
+  fi
 }
