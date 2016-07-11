@@ -93,7 +93,7 @@ function sshc {
   fi
   # if already set, we're already in a sshc session, just re-use LC_USER_RCFILE as it is
   if [[ -z "$LC_USER_RCFILE" ]]; then
-    LC_USER_RCFILE=$(echo -e "if [[ -f ~/.bashrc ]];then . ~/.bashrc; fi\n${USER_BASHRC}\n${USER_INPUTRC}")
+    LC_USER_RCFILE=$(echo -e "if [[ -f /etc/motd ]];then cat /etc/motd; fi\n if [[ -f ~/.bashrc ]];then . ~/.bashrc; fi\n${USER_BASHRC}\n${USER_INPUTRC}")
   fi
   if [[ -n "$@" ]]; then
     LC_USER_RCFILE=${LC_USER_RCFILE} /usr/bin/ssh -t "$@" -- 'bash --rcfile <(echo "${LC_USER_RCFILE}")'
