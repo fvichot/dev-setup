@@ -23,9 +23,16 @@ complete -r cd &>/dev/null
 complete -r sqlite3 &>/dev/null
 complete -r ninja &>/dev/null
 
+function iterm_set_badge {
+  MSG=$(echo -n "$1" | base64)
+  export ITERM_BADGE_VALUE="$1"
+  echo -e '\033]1337;SetBadgeFormat='$MSG'\007'
+}
+
 PS1_REMOTE='37;44'
 if [[ -n "$SSH_TTY" ]]; then
   PS1_REMOTE='30;43'
+  iterm_set_badge "XXX_BADGE_XXX"
 fi
 
 function __is_root {
@@ -87,6 +94,15 @@ function mm {
   return ${PIPESTATUS[0]}
 }
 
+function format_hostname {
+  HOST="$1"
+  if [[ "$HOST" == *.wibox.wifirst.net ]]; then
+    HOST=$(echo "$HOST" | cut -f 1 -d '.')
+  fi
+  HOST=$(echo "$HOST" | cut -f 2 -d '@')
+  echo "$HOST"
+}
+
 function sshc {
   # if already set, we're already in a sshc session, just re-use it
   if [[ -z "$LC_USER_RCFILE" ]]; then
@@ -96,11 +112,20 @@ function sshc {
     else
       local USER_INPUTRC=$(cat ~/.inputrc | sed -E 's/^([^#]+)/bind "\1"/')
     fi
-  
-    local LC_USER_RCFILE=$(echo -e "if [[ -f /etc/motd ]];then cat /etc/motd; fi\n if [[ -f ~/.bashrc ]];then . ~/.bashrc; fi\n${USER_BASHRC}\n${USER_INPUTRC}")
+    local NEWLINE=$(echo)
+    local PROLOG=$(echo -e "if [[ -f /etc/motd ]];then cat /etc/motd; fi\n if [[ -f ~/.bashrc ]];then . ~/.bashrc; fi")
+    local LC_USER_RCFILE="
+${PROLOG}
+${USER_BASHRC}
+${USER_INPUTRC}"
   fi
   if [[ -n "$@" ]]; then
+    PREV_BADGE="$ITERM_BADGE_VALUE"
+    # last argument is a best guess effort
+    export ITERM_BADGE_VALUE=$(format_hostname ${@: -1})
+    LC_USER_RCFILE=$(echo "$LC_USER_RCFILE" | sed "s/XXX_BADGE_XXX/${ITERM_BADGE_VALUE}/" )
     LC_USER_RCFILE=${LC_USER_RCFILE} /usr/bin/ssh -t "$@" -- 'bash --rcfile <(echo "${LC_USER_RCFILE}")'
+    iterm_set_badge "$PREV_BADGE"
   else
     /usr/bin/ssh -h
   fi
