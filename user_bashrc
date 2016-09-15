@@ -24,9 +24,9 @@ complete -r sqlite3 &>/dev/null
 complete -r ninja &>/dev/null
 
 function iterm_set_badge {
-  MSG=$(echo -n "$1" | base64)
+  MSG="$1"
   export ITERM_BADGE_VALUE="$1"
-  echo -e '\033]1337;SetBadgeFormat='$MSG'\007'
+  echo -en "\e]0;$MSG\a"
 }
 
 PS1_REMOTE='37;44'
@@ -44,6 +44,8 @@ function __is_root {
 
 export GIT_AUTHOR_NAME='Florian Vichot'
 export GIT_AUTHOR_EMAIL='florian.vichot@wifirst.fr'
+export GIT_COMMITER_NAME=$GIT_AUTHOR_NAME
+export GIT_COMMITER_EMAIL=$GIT_AUTHOR_EMAIL
 
 export GIT_PS1_SHOWDIRTYSTATE=0
 export GIT_PS1_SHOWSTASHSTATE=0
@@ -57,14 +59,17 @@ else
   export PS1="\[\e[37;${PS1_REMOTE}m\]\w\[\e[m\]\n\[\e[36\$(__is_root);1m\]\u\[\e[m\]@\[\e[32m\]\h\[\e[m\]\\$ "
 fi
 
-export HISTFILESIZE=10000
+export HISTFILESIZE=-1
+export HISTSIZE=-1
 export HISTCONTROL=ignoreboth
 shopt -s histappend
 shopt -s no_empty_cmd_completion
+shopt -s checkhash
+export PROMPT_COMMAND="history -a;$PROMPT_COMMAND"
 
 export EDITOR=nano
 
-export PATH=~/dev/bin:/usr/local/bin:/usr/local/sbin/:$PATH
+export PATH=~/dev/bin:/usr/local/bin:/usr/local/sbin/:$PATH:/sbin:/usr/sbin
 
 function nn {
   ninja "$@" | perl -wln -M'Term::ANSIColor' -e '
@@ -94,6 +99,30 @@ function mm {
   return ${PIPESTATUS[0]}
 }
 
+function nth_field {
+  NTH=${1:-1}
+  awk "{print \$${NTH}}"
+}
+
+function nl2null {
+  tr '\n' '\0'
+}
+
+function wrap_with {
+  new_line="$*"
+  while read line; do
+    echo ${new_line//\{\}/$line}
+  done
+}
+
+function repeat {
+  COUNT="$1"
+  TEXT="$2"
+  for i in $(seq 1 $COUNT); do
+    echo "$TEXT"
+  done
+}
+
 function format_hostname {
   HOST="$1"
   if [[ "$HOST" == *.wibox.wifirst.net ]]; then
@@ -108,12 +137,28 @@ function sshc {
   if [[ -z "$LC_USER_RCFILE" ]]; then
     local USER_BASHRC=$(cat ~/.user_bashrc)
     if [[ $(uname -s) == Linux ]]; then
-      local USER_INPUTRC=$(cat ~/.inputrc | sed -r 's/^([^#]+)/bind "\1"/')
+      local USER_INPUTRC=$(cat ~/.inputrc | sed -r "s/^([^#]+)/bind '\1'/")
     else
-      local USER_INPUTRC=$(cat ~/.inputrc | sed -E 's/^([^#]+)/bind "\1"/')
+      local USER_INPUTRC=$(cat ~/.inputrc | sed -E "s/^([^#]+)/bind '\1'/")
     fi
-    local NEWLINE=$(echo)
-    local PROLOG=$(echo -e "if [[ -f /etc/motd ]];then cat /etc/motd; fi\n if [[ -f ~/.bashrc ]];then . ~/.bashrc; fi")
+    local PROLOG=$(echo "
+if [[ -f /etc/motd ]]; then
+	cat /etc/motd
+fi
+# Behave as a login shell, as that's the normal SSH behaviour
+if [[ -f /etc/profile ]]; then
+	source /etc/profile
+fi
+if [[ -d /etc/profile.d && -n \"\$(compgen -G '/etc/profile.d/*')\" ]]; then
+	source /etc/profile.d/*
+fi
+if [[ -f ~/.bash_profile ]];then
+	source ~/.bash_profile
+fi
+if [[ -f ~/.bashrc ]];then
+	source ~/.bashrc
+fi
+")
     local LC_USER_RCFILE="
 ${PROLOG}
 ${USER_BASHRC}
@@ -131,6 +176,6 @@ ${USER_INPUTRC}"
   fi
 }
 
-if [[ -n $(type -t _ssh) ]]; then
+if [ -n "$(type -t _ssh)" ]; then
   complete -F _ssh sshc
 fi
